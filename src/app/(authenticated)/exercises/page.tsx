@@ -1,10 +1,20 @@
-export default function ExercisesPage() {
+import { redirect } from "next/navigation"
+import { getAuthUser } from "@/lib/auth"
+import { getExercises } from "@/app/(authenticated)/exercises/_actions/exercise-actions"
+import { ExerciseList } from "@/app/(authenticated)/exercises/_components/exercise-list"
+
+export default async function ExercisesPage() {
+  const user = await getAuthUser()
+
+  if (!user) {
+    redirect("/login")
+  }
+
+  const exercises = await getExercises(user.id)
+
   return (
     <div className="flex flex-1 flex-col gap-6 p-4">
-      <h1 className="text-xl font-bold">種目一覧</h1>
-      <p className="text-sm text-muted-foreground">
-        登録済みの種目がありません
-      </p>
+      <ExerciseList exercises={exercises} />
     </div>
   )
 }
