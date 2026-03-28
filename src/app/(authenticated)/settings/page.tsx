@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { LogoutButton } from "./_components/logout-button"
+import { ThemeSwitcher } from "./_components/theme-switcher"
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -15,6 +16,7 @@ export default async function SettingsPage() {
           <p className="text-sm text-muted-foreground">ログイン中のアカウント</p>
           <p className="text-sm font-medium">{user?.email}</p>
         </div>
+        <ThemeSwitcher />
         <LogoutButton />
       </div>
     </div>
