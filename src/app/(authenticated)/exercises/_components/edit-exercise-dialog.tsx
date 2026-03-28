@@ -1,15 +1,17 @@
 "use client"
 
-import { useActionState, useEffect, useRef, useState } from "react"
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import type { Exercise } from "@prisma/client"
 import {
   updateExercise,
   deleteExercise,
 } from "@/app/(authenticated)/exercises/_actions/exercise-actions"
-import type {
-  ExerciseActionState,
-  DeleteExerciseActionState,
+import {
+  createExerciseSchema,
+  type CreateExerciseInput,
 } from "@/app/(authenticated)/exercises/_actions/types"
 import { Button } from "@/components/ui/button"
 import {
@@ -40,43 +42,52 @@ type Props = {
   onOpenChange: (open: boolean) => void
 }
 
-const initialUpdateState: ExerciseActionState = {
-  success: false,
-}
-
-const initialDeleteState: DeleteExerciseActionState = {
-  success: false,
-}
-
 export function EditExerciseDialog({ exercise, open, onOpenChange }: Props) {
-  const [updateState, updateAction, isUpdatePending] = useActionState(
-    updateExercise,
-    initialUpdateState,
-  )
-  const [deleteState, deleteAction, isDeletePending] = useActionState(
-    deleteExercise,
-    initialDeleteState,
-  )
-  const formRef = useRef<HTMLFormElement>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  useEffect(() => {
-    if (updateState.success) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateExerciseInput>({
+    resolver: zodResolver(createExerciseSchema),
+    defaultValues: {
+      name: exercise.name,
+      weight: exercise.weight,
+      reps: exercise.reps,
+      sets: exercise.sets,
+    },
+  })
+
+  const onSubmit = async (data: CreateExerciseInput) => {
+    try {
+      await updateExercise({ id: exercise.id, ...data })
       onOpenChange(false)
       toast.success("種目を更新しました")
+    } catch {
+      toast.error("種目の更新に失敗しました")
     }
-  }, [updateState, onOpenChange])
+  }
 
-  useEffect(() => {
-    if (deleteState.success) {
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      await deleteExercise(exercise.id)
       setDeleteConfirmOpen(false)
       onOpenChange(false)
       toast.success("種目を削除しました")
-    } else if (deleteState.errors?._form) {
+    } catch (error) {
       setDeleteConfirmOpen(false)
-      toast.error(deleteState.errors._form[0])
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "種目の削除に失敗しました",
+      )
+    } finally {
+      setIsDeleting(false)
     }
-  }, [deleteState, onOpenChange])
+  }
 
   return (
     <>
@@ -88,28 +99,17 @@ export function EditExerciseDialog({ exercise, open, onOpenChange }: Props) {
               種目の情報を編集します
             </DialogDescription>
           </DialogHeader>
-          <form
-            ref={formRef}
-            action={updateAction}
-            key={exercise.updatedAt.toString()}
-          >
-            <input type="hidden" name="id" value={exercise.id} />
+          <form onSubmit={handleSubmit(onSubmit)}>
             <div className="grid gap-4 py-4">
-              {updateState.errors?._form && (
-                <p className="text-sm text-destructive">
-                  {updateState.errors._form[0]}
-                </p>
-              )}
               <div className="grid gap-2">
                 <Label htmlFor="edit-name">種目名</Label>
                 <Input
                   id="edit-name"
-                  name="name"
-                  defaultValue={exercise.name}
+                  {...register("name")}
                 />
-                {updateState.errors?.name && (
+                {errors.name && (
                   <p className="text-sm text-destructive">
-                    {updateState.errors.name[0]}
+                    {errors.name.message}
                   </p>
                 )}
               </div>
@@ -117,16 +117,15 @@ export function EditExerciseDialog({ exercise, open, onOpenChange }: Props) {
                 <Label htmlFor="edit-weight">重量 (kg)</Label>
                 <Input
                   id="edit-weight"
-                  name="weight"
                   type="number"
                   step="0.01"
                   min="0"
                   max="999"
-                  defaultValue={exercise.weight}
+                  {...register("weight")}
                 />
-                {updateState.errors?.weight && (
+                {errors.weight && (
                   <p className="text-sm text-destructive">
-                    {updateState.errors.weight[0]}
+                    {errors.weight.message}
                   </p>
                 )}
               </div>
@@ -134,15 +133,14 @@ export function EditExerciseDialog({ exercise, open, onOpenChange }: Props) {
                 <Label htmlFor="edit-reps">回数</Label>
                 <Input
                   id="edit-reps"
-                  name="reps"
                   type="number"
                   min="1"
                   max="100"
-                  defaultValue={exercise.reps}
+                  {...register("reps")}
                 />
-                {updateState.errors?.reps && (
+                {errors.reps && (
                   <p className="text-sm text-destructive">
-                    {updateState.errors.reps[0]}
+                    {errors.reps.message}
                   </p>
                 )}
               </div>
@@ -150,22 +148,21 @@ export function EditExerciseDialog({ exercise, open, onOpenChange }: Props) {
                 <Label htmlFor="edit-sets">セット数</Label>
                 <Input
                   id="edit-sets"
-                  name="sets"
                   type="number"
                   min="1"
                   max="20"
-                  defaultValue={exercise.sets}
+                  {...register("sets")}
                 />
-                {updateState.errors?.sets && (
+                {errors.sets && (
                   <p className="text-sm text-destructive">
-                    {updateState.errors.sets[0]}
+                    {errors.sets.message}
                   </p>
                 )}
               </div>
             </div>
             <DialogFooter>
-              <Button type="submit" disabled={isUpdatePending}>
-                {isUpdatePending ? (
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
                   <>
                     <Spinner /> 更新中...
                   </>
@@ -197,22 +194,19 @@ export function EditExerciseDialog({ exercise, open, onOpenChange }: Props) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>キャンセル</AlertDialogCancel>
-            <form action={deleteAction}>
-              <input type="hidden" name="id" value={exercise.id} />
-              <AlertDialogAction
-                type="submit"
-                disabled={isDeletePending}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {isDeletePending ? (
-                  <>
-                    <Spinner /> 削除中...
-                  </>
-                ) : (
-                  "削除する"
-                )}
-              </AlertDialogAction>
-            </form>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Spinner /> 削除中...
+                </>
+              ) : (
+                "削除する"
+              )}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

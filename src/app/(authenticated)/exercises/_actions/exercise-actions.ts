@@ -1,35 +1,14 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { getAuthUser } from "@/lib/auth"
-import type {
-  ExerciseActionState,
-  DeleteExerciseActionState,
+import {
+  createExerciseSchema,
+  updateExerciseSchema,
+  type CreateExerciseInput,
+  type UpdateExerciseInput,
 } from "@/app/(authenticated)/exercises/_actions/types"
-
-const createExerciseSchema = z.object({
-  name: z
-    .string()
-    .min(1, "種目名は必須です")
-    .max(50, "種目名は50文字以内で入力してください"),
-  weight: z.coerce
-    .number()
-    .min(0, "重量は0以上で入力してください")
-    .max(999, "重量は999以下で入力してください")
-    .transform((v) => Math.round(v * 100) / 100),
-  reps: z.coerce
-    .number()
-    .int("回数は整数で入力してください")
-    .min(1, "回数は1以上で入力してください")
-    .max(100, "回数は100以下で入力してください"),
-  sets: z.coerce
-    .number()
-    .int("セット数は整数で入力してください")
-    .min(1, "セット数は1以上で入力してください")
-    .max(20, "セット数は20以下で入力してください"),
-})
 
 export async function getExercises(userId: string) {
   return prisma.exercise.findMany({
@@ -38,25 +17,17 @@ export async function getExercises(userId: string) {
   })
 }
 
-export async function createExercise(
-  _prevState: ExerciseActionState,
-  formData: FormData,
-): Promise<ExerciseActionState> {
+export async function createExercise(input: CreateExerciseInput) {
   const user = await getAuthUser()
 
   if (!user) {
-    return { success: false, errors: { _form: ["認証が必要です"] } }
+    throw new Error("認証が必要です")
   }
 
-  const parsed = createExerciseSchema.safeParse(
-    Object.fromEntries(formData),
-  )
+  const parsed = createExerciseSchema.safeParse(input)
 
   if (!parsed.success) {
-    return {
-      success: false,
-      errors: parsed.error.flatten().fieldErrors,
-    }
+    throw new Error("入力内容に誤りがあります")
   }
 
   await prisma.exercise.create({
@@ -67,52 +38,19 @@ export async function createExercise(
   })
 
   revalidatePath("/exercises")
-
-  return { success: true }
 }
 
-const updateExerciseSchema = z.object({
-  id: z.string().cuid(),
-  name: z
-    .string()
-    .min(1, "種目名は必須です")
-    .max(50, "種目名は50文字以内で入力してください"),
-  weight: z.coerce
-    .number()
-    .min(0, "重量は0以上で入力してください")
-    .max(999, "重量は999以下で入力してください")
-    .transform((v) => Math.round(v * 100) / 100),
-  reps: z.coerce
-    .number()
-    .int("回数は整数で入力してください")
-    .min(1, "回数は1以上で入力してください")
-    .max(100, "回数は100以下で入力してください"),
-  sets: z.coerce
-    .number()
-    .int("セット数は整数で入力してください")
-    .min(1, "セット数は1以上で入力してください")
-    .max(20, "セット数は20以下で入力してください"),
-})
-
-export async function updateExercise(
-  _prevState: ExerciseActionState,
-  formData: FormData,
-): Promise<ExerciseActionState> {
+export async function updateExercise(input: UpdateExerciseInput) {
   const user = await getAuthUser()
 
   if (!user) {
-    return { success: false, errors: { _form: ["認証が必要です"] } }
+    throw new Error("認証が必要です")
   }
 
-  const parsed = updateExerciseSchema.safeParse(
-    Object.fromEntries(formData),
-  )
+  const parsed = updateExerciseSchema.safeParse(input)
 
   if (!parsed.success) {
-    return {
-      success: false,
-      errors: parsed.error.flatten().fieldErrors,
-    }
+    throw new Error("入力内容に誤りがあります")
   }
 
   const { id, ...data } = parsed.data
@@ -122,7 +60,7 @@ export async function updateExercise(
   })
 
   if (!exercise) {
-    return { success: false, errors: { _form: ["種目が見つかりません"] } }
+    throw new Error("種目が見つかりません")
   }
 
   await prisma.exercise.update({
@@ -131,49 +69,32 @@ export async function updateExercise(
   })
 
   revalidatePath("/exercises")
-
-  return { success: true }
 }
 
-export async function deleteExercise(
-  _prevState: DeleteExerciseActionState,
-  formData: FormData,
-): Promise<DeleteExerciseActionState> {
+export async function deleteExercise(id: string) {
   const user = await getAuthUser()
 
   if (!user) {
-    return { success: false, errors: { _form: ["認証が必要です"] } }
-  }
-
-  const id = formData.get("id")
-  const parsed = z.string().cuid().safeParse(id)
-
-  if (!parsed.success) {
-    return { success: false, errors: { _form: ["無効なIDです"] } }
+    throw new Error("認証が必要です")
   }
 
   const exercise = await prisma.exercise.findUnique({
-    where: { id: parsed.data, userId: user.id },
+    where: { id, userId: user.id },
     include: { menuItems: true },
   })
 
   if (!exercise) {
-    return { success: false, errors: { _form: ["種目が見つかりません"] } }
+    throw new Error("種目が見つかりません")
   }
 
   if (exercise.menuItems.length > 0) {
-    return {
-      success: false,
-      errors: { _form: ["メニューに紐づいている種目は削除できません"] },
-    }
+    throw new Error("メニューに紐づいている種目は削除できません")
   }
 
   await prisma.exercise.update({
-    where: { id: parsed.data },
+    where: { id },
     data: { isDeleted: true },
   })
 
   revalidatePath("/exercises")
-
-  return { success: true }
 }
