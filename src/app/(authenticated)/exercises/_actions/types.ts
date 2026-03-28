@@ -8,3 +8,10 @@ export type ExerciseActionState = {
     _form?: string[]
   }
 }
+
+export type DeleteExerciseActionState = {
+  success: boolean
+  errors?: {
+    _form?: string[]
+  }
+}

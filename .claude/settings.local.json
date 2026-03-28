@@ -20,7 +20,8 @@
       "WebFetch(domain:www.buildwithmatija.com)",
       "WebFetch(domain:medium.com)",
       "WebFetch(domain:www.prisma.io)",
-      "Bash(pnpm list:*)"
+      "Bash(pnpm list:*)",
+      "Bash(pnpm dlx:*)"
     ],
     "deny": [],
     "ask": []
