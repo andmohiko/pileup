@@ -17,9 +17,9 @@
 
 - フロントエンド: Next.js App Router + TypeScript
 - インフラ: Vercel
-- データベース: PostgreSQL
+- データベース: Prisma + PostgreSQL
 - 認証: Supabase Authentication
-- パッケージマネージャー: pnpm + turborepo
+- パッケージマネージャー: pnpm
 
 ## 3. ドメインモデル
 
@@ -71,11 +71,11 @@
 
 | 項目 | 内容 |
 |------|------|
-| 概要 | Firebase AuthenticationによるGoogleアカウントログイン |
+| 概要 | Supabase AuthenticationによるGoogleアカウントログイン |
 | 優先度 | 必須 |
 
 **詳細要件:**
-- Firebase Authenticationを使用したGoogleアカウントでのログイン機能を提供する
+- Supabase Authenticationを使用したGoogleアカウントでのログイン機能を提供する
 - 未ログイン状態ではログイン画面のみを表示する
 - ログイン成功後、自動的にホーム画面へ遷移する
 - ログアウト機能を提供し、セッションを完全にクリアする
@@ -91,7 +91,7 @@
 - ログイン状態をブラウザセッションで維持する
 - セッション有効期限は30日間とする
 - 複数デバイスからの同時ログインを許可する
-- TanStack Routerのルートガードで認証状態を検証する
+- Next.js App Routerのミドルウェアで認証状態を検証する
 
 ---
 
@@ -328,10 +328,10 @@
 - テキストフォーマットは「8. コピー機能のテキストフォーマット例」に従う
 
 **コピーテキストに含まれる情報:**
-- 通算トレーニング回数
-- メニュータイトル
-- 種目ごとの目標回数レンジ・セット数・目標重量
-- セットごとの実際の回数・重量
+- 通算トレーニング回数（training_count）
+- メニュータイトル（base_menu_id経由でMenuのtitleを取得）
+- 種目ごとのセット数・重量（Exerciseから参照）
+- セットごとの実際の回数・重量（ExerciseSetから取得）
 
 #### FR-TRAINING-005: トレーニング履歴表示
 
@@ -342,7 +342,7 @@
 
 **詳細要件:**
 - ホーム画面にトレーニング履歴を日付の降順で表示する
-- 各記録は日付、メニュータイトル、通算回数を表示する
+- 各記録は日付（trained_at）、メニュータイトル（base_menu_id経由）、通算回数（training_count）を表示する
 - 記録をタップすると詳細を表示する
 - 詳細画面からもコピーボタンを使用できる
 - 無限スクロールによるページネーションを実装する（1回あたり20件）
@@ -361,83 +361,7 @@
 
 ## 5. DB設計
 
-### 5.1 ER図
-
-```mermaid
-erDiagram
-    User {
-        string id PK
-        string email UK
-        datetime created_at
-        datetime updated_at
-        boolean isDeleted
-    }
-
-    Exercise {
-        string id PK
-        string user_id FK
-        string name
-        int weight
-        int reps
-        int sets
-        datetime created_at
-        datetime updated_at
-        boolean is_deleted
-    }
-
-    Menu {
-        string id PK
-        string user_id FK
-        string title
-        datetime created_at
-        datetime updated_at
-    }
-
-    MenuItems {
-        string id PK
-        string menu_id FK
-        string exercise_id FK
-        datetime created_at
-        datetime updated_at
-    }
-
-    Training {
-        string id PK
-        string user_id FK
-        string base_menu_id FK
-        datetime trained_at
-        int training_count
-        datetime created_at
-        datetime updated_at
-    }
-
-    ExerciseLog {
-        string id PK
-        string training_id FK
-        string exercies_id FK
-        datetime created_at
-        datetime updated_at
-    }
-
-    ExerciseSet {
-        string id PK
-        string exercise_log_id FK
-        int set_count
-        int weight
-        int reps
-        datetime created_at
-        datetime updated_at
-    }
-
-    User ||--o{ Exercise : "creates"
-    User ||--o{ Menu : "owns"
-    User ||--o{ Training : "performs"
-    Menu ||--o{ MenuItems : "contains"
-    MenuItems ||--o{ Exercise : "references"
-    Training ||--o{ ExerciseLog : "logs"
-    ExerciseLog ||--o{ ExerciseSet : "records"
-    Exercise ||--o{ ExerciseLog : "records"
-```
+詳細は @docs/er-diagram.md を参照。
 
 ## 6. 画面一覧
 
@@ -461,14 +385,14 @@ erDiagram
 
 #### NFR-SEC-001: 認証・認可
 
-- Firebase Authenticationによる認証を必須とする
-- Firestoreセキュリティルールにより、ユーザーは自身のデータのみアクセス可能
-- APIキーはサーバーサイド（Firebase Functions）で管理し、クライアントに露出させない
+- Supabase Authenticationによる認証を必須とする
+- Row Level Security（RLS）により、ユーザーは自身のデータのみアクセス可能
+- APIキーはサーバーサイドで管理し、クライアントに露出させない
 
 #### NFR-SEC-002: データ保護
 
 - 通信はHTTPS（TLS 1.3）を使用する
-- Firestoreのデータは保存時に自動暗号化される
+- PostgreSQLのデータは保存時に暗号化される
 - 個人情報の取り扱いはGDPR/個人情報保護法に準拠する
 
 
