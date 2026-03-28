@@ -3,9 +3,10 @@ import { createClient } from "@/lib/supabase/server"
 import { prisma } from "@/lib/prisma"
 
 export const GET = async (request: Request) => {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get("code")
   const next = searchParams.get("next") ?? "/"
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL!
 
   if (code) {
     const supabase = await createClient()
@@ -26,9 +27,9 @@ export const GET = async (request: Request) => {
         })
       }
 
-      return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(`${appUrl}${next}`)
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+  return NextResponse.redirect(`${appUrl}/login?error=auth_failed`)
 }
