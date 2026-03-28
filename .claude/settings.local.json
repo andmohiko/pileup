@@ -16,7 +16,11 @@
       "Bash(pnpm web build)",
       "Bash(pnpm functions pre-build)",
       "Bash(pnpm build:*)",
-      "Bash(pnpm prisma:*)"
+      "Bash(pnpm prisma:*)",
+      "WebFetch(domain:www.buildwithmatija.com)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:www.prisma.io)",
+      "Bash(pnpm list:*)"
     ],
     "deny": [],
     "ask": []
