@@ -1,0 +1,33 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "andmohiko",
+    "autosize",
+    "dropzone",
+    "firebase",
+    "firestore",
+    "flatMap",
+    "hookform",
+    "mantine",
+    "millis",
+    "Navigations",
+    "nextjs",
+    "predeploy",
+    "recaptcha",
+    "shadcn",
+    "tanstack",
+    "turbopack",
+    "vercel",
+    "webp"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    ".next",
+    "public",
+    "*.js",
+    "*.log",
+    ".turbo",
+    ".git"
+  ]
+}
