@@ -21,7 +21,8 @@
       "WebFetch(domain:medium.com)",
       "WebFetch(domain:www.prisma.io)",
       "Bash(pnpm list:*)",
-      "Bash(pnpm dlx:*)"
+      "Bash(pnpm dlx:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []
