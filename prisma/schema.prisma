@@ -11,3 +11,106 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isDeleted Boolean  @default(false) @map("is_deleted")
+
+  exercises Exercise[]
+  menus     Menu[]
+  trainings Training[]
+
+  @@map("users")
+}
+
+model Exercise {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  name      String
+  weight    Int
+  reps      Int
+  sets      Int
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isDeleted Boolean  @default(false) @map("is_deleted")
+
+  user         User          @relation(fields: [userId], references: [id])
+  menuItems    MenuItem[]
+  exerciseLogs ExerciseLog[]
+
+  @@map("exercises")
+}
+
+model Menu {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  title     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User       @relation(fields: [userId], references: [id])
+  menuItems MenuItem[]
+  trainings Training[]
+
+  @@map("menus")
+}
+
+model MenuItem {
+  id         String   @id @default(cuid())
+  menuId     String   @map("menu_id")
+  exerciseId String   @map("exercise_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  menu     Menu     @relation(fields: [menuId], references: [id])
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@map("menu_items")
+}
+
+model Training {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  baseMenuId    String   @map("base_menu_id")
+  trainedAt     DateTime @map("trained_at")
+  trainingCount Int      @map("training_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id])
+  baseMenu     Menu          @relation(fields: [baseMenuId], references: [id])
+  exerciseLogs ExerciseLog[]
+
+  @@map("trainings")
+}
+
+model ExerciseLog {
+  id         String   @id @default(cuid())
+  trainingId String   @map("training_id")
+  exerciseId String   @map("exercise_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  training     Training      @relation(fields: [trainingId], references: [id])
+  exercise     Exercise      @relation(fields: [exerciseId], references: [id])
+  exerciseSets ExerciseSet[]
+
+  @@map("exercise_logs")
+}
+
+model ExerciseSet {
+  id            String   @id @default(cuid())
+  exerciseLogId String   @map("exercise_log_id")
+  setCount      Int      @map("set_count")
+  weight        Int
+  reps          Int
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  exerciseLog ExerciseLog @relation(fields: [exerciseLogId], references: [id])
+
+  @@map("exercise_sets")
+}
